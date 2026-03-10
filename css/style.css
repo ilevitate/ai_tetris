@@ -1,0 +1,612 @@
+/**
+ * 俄罗斯方块 - 样式表
+ * 包含游戏界面、按钮、画布等元素的样式定义
+ * 
+ * 项目结构:
+ * - 全局重置: 清除默认样式，统一盒模型
+ * - 页面主体: 背景渐变、 flex 居中布局
+ * - 侧边面板: 桌面端左右信息栏（下一个、得分、等级、已消除）
+ * - 中间游戏区域: 标题、画布、控制按钮
+ * - 移动端适配: 信息栏、圆形控制盘、横屏检测
+ * - 响应式设计: 适配不同屏幕尺寸
+ */
+
+/* ===== 全局重置 ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+    -webkit-tap-highlight-color: transparent; /* 去除移动端点击高亮 */
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* 防止页面滚动 */
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+}
+
+/* ===== 页面主体样式 ===== */
+body {
+    /* 深蓝灰渐变背景，垂直方向避免斜线干扰 */
+    background: linear-gradient(180deg, #2c3e50 0%, #4a6572 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px; /* 防止内容贴边 */
+}
+
+/* ===== 游戏包装器 ===== */
+.game-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 10px;
+    max-width: 1200px;
+    width: 100%;
+    max-height: 95vh; /* 防止在 Edge 浏览器中溢出 */
+    overflow: hidden;
+}
+
+/* ===== 侧边面板 ===== */
+.side-panel {
+    background: rgba(255, 255, 255, 0.15); /* 半透明毛玻璃效果 */
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 12px;
+    min-width: 110px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.info-box {
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.info-box:last-child {
+    margin-bottom: 0;
+}
+
+.info-box h3 {
+    color: #fff;
+    font-size: 0.8em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 下一个方块预览画布 */
+#nextCanvas {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    width: 80px;
+    height: 80px;
+}
+
+/* 得分、等级、已消除数字样式 */
+.score, .level, .lines {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #00d9ff;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+/* ===== 中间游戏区域 ===== */
+.game-area {
+    text-align: center;
+}
+
+/* 游戏标题 - 渐变色文字动画 */
+h1 {
+    color: #fff;
+    font-size: 2em;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.8);
+    /* 多色渐变: 青蓝 -> 粉紫 -> 金黄 -> 青蓝 */
+    background: linear-gradient(90deg, #00f5ff, #ff6b9d, #ffd93d, #00f5ff);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 4s linear infinite; /* 流光动画 */
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+/* 标题流光动画 */
+@keyframes shine {
+    to {
+        background-position: 200% center;
+    }
+}
+
+/* ===== 画布容器 ===== */
+.canvas-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* 游戏主画布 */
+#gameCanvas {
+    background: rgba(30, 40, 50, 0.8);
+    border-radius: 10px;
+    border: 2px solid rgba(100, 150, 180, 0.4);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    max-height: 65vh; /* 限制高度防止溢出 */
+    width: auto;
+    height: auto;
+}
+
+/* ===== 游戏结束/暂停弹窗 ===== */
+.game-over-modal, .pause-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    z-index: 10;
+}
+
+.game-over-modal h2, .pause-modal h2 {
+    color: #ff6b6b;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+}
+
+.game-over-modal p {
+    color: #fff;
+    font-size: 1.5em;
+    margin-bottom: 30px;
+}
+
+/* ===== 移动端信息栏 ===== */
+.mobile-info-bar {
+    display: none;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 15px;
+    padding: 8px 0;
+}
+
+.mobile-info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.mobile-info-label {
+    font-size: 0.65em;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+}
+
+.mobile-info-value {
+    font-size: 1em;
+    font-weight: bold;
+    color: #00d9ff;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#mobileNextCanvas {
+    width: 38px;
+    height: 38px;
+}
+
+/* ===== 移动端控制按钮 - 圆形方向盘 ===== */
+.mobile-controls {
+    display: none;
+    margin-bottom: 10px;
+}
+
+.d-pad {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    margin: 0 auto;
+}
+
+/* 外围透明阴影圆环背景 */
+.d-pad-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.15) 40%, 
+        rgba(255, 255, 255, 0.2) 70%,
+        rgba(100, 150, 180, 0.15) 100%);
+    box-shadow: 
+        0 0 30px rgba(0, 0, 0, 0.2),
+        inset 0 0 40px rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.d-btn {
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgba(60, 80, 100, 0.9), rgba(40, 60, 80, 0.9));
+    color: #a0c0d0;
+    font-size: 1.2em;
+    cursor: pointer;
+    box-shadow: 
+        0 4px 10px rgba(0, 0, 0, 0.3),
+        inset 0 1px 3px rgba(255, 255, 255, 0.1);
+    transition: all 0.15s ease;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(100, 150, 180, 0.3);
+}
+
+.d-btn:active {
+    transform: scale(0.9);
+    box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        inset 0 2px 5px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(145deg, rgba(80, 120, 150, 0.9), rgba(60, 90, 120, 0.9));
+    color: #fff;
+}
+
+/* 上 - 旋转 */
+.d-up {
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(145deg, #5dade2, #3498db);
+    color: #fff;
+    box-shadow: 
+        0 4px 10px rgba(52, 152, 219, 0.4),
+        inset 0 1px 3px rgba(255, 255, 255, 0.2);
+}
+
+.d-up:active {
+    background: linear-gradient(145deg, #3498db, #5dade2);
+}
+
+/* 左 */
+.d-left {
+    top: 50%;
+    left: 3px;
+    transform: translateY(-50%);
+}
+
+/* 右 */
+.d-right {
+    top: 50%;
+    right: 3px;
+    transform: translateY(-50%);
+}
+
+/* 下 - 加速下落 */
+.d-down {
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* ===== 游戏控制按钮 ===== */
+.game-controls {
+    margin-bottom: 10px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 10px 25px;
+    margin: 0 8px;
+    font-size: 0.9em;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-primary {
+    background: linear-gradient(145deg, #00d9ff, #0099cc);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 217, 255, 0.6);
+}
+
+.btn-secondary {
+    background: linear-gradient(145deg, #ff6b6b, #cc5555);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+#restartBtn {
+    padding: 15px 40px;
+    font-size: 1.2em;
+    background: linear-gradient(145deg, #00d9ff, #0099cc);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+#restartBtn:hover, #resumeBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 217, 255, 0.6);
+}
+
+#resumeBtn {
+    padding: 15px 40px;
+    font-size: 1.2em;
+    background: linear-gradient(145deg, #00d9ff, #0099cc);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+/* ===== 操作说明 ===== */
+.instructions {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8em;
+    line-height: 1.4;
+}
+
+.instructions p {
+    margin-bottom: 3px;
+}
+
+/* ===== 右侧控制列表 ===== */
+.controls-list {
+    text-align: left;
+}
+
+.control-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8em;
+}
+
+.key {
+    display: inline-block;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    margin-right: 8px;
+    font-family: monospace;
+    font-weight: bold;
+    color: #00d9ff;
+    min-width: 40px;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+/* ===== 工具类 ===== */
+.hidden {
+    display: none !important;
+}
+
+/* ===== 响应式适配 ===== */
+@media screen and (max-width: 900px) {
+    .game-wrapper {
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .side-panel {
+        display: none;
+    }
+    
+    h1 {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+    
+    #gameCanvas {
+        max-width: 95vw;
+        max-height: 48vh;
+        width: auto;
+        height: auto;
+    }
+    
+    .mobile-controls {
+        display: block;
+        margin-top: 8px;
+    }
+    
+    .mobile-info-bar {
+        display: flex;
+    }
+    
+    .instructions {
+        display: none;
+    }
+    
+    .game-controls {
+        margin-bottom: 8px;
+    }
+    
+    .btn-primary, .btn-secondary {
+        padding: 8px 20px;
+        font-size: 0.85em;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    h1 {
+        font-size: 1.7em;
+    }
+    
+    .d-pad {
+        width: 110px;
+        height: 110px;
+    }
+    
+    .d-pad-bg {
+        width: 110px;
+        height: 110px;
+    }
+    
+    .d-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1em;
+    }
+    
+    .d-up {
+        top: 2px;
+    }
+    
+    .d-left {
+        left: 2px;
+    }
+    
+    .d-right {
+        right: 2px;
+    }
+    
+    .d-down {
+        bottom: 2px;
+    }
+    
+    .mobile-info-bar {
+        gap: 20px;
+        padding: 6px 0;
+    }
+    
+    .mobile-info-value {
+        font-size: 0.85em;
+        width: 30px;
+        height: 30px;
+    }
+    
+    #mobileNextCanvas {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+/* ===== 横屏模式优化 ===== */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+    .game-wrapper {
+        flex-direction: row;
+        padding: 5px;
+    }
+    
+    h1 {
+        font-size: 1.3em;
+        margin-bottom: 5px;
+    }
+    
+    #gameCanvas {
+        max-height: 70vh;
+    }
+    
+    .mobile-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .control-row {
+        margin-bottom: 5px;
+    }
+}
+
+/* ===== 横屏提示 ===== */
+.orientation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #2c3e50 0%, #4a6572 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.orientation-content {
+    text-align: center;
+    color: #fff;
+    padding: 40px;
+}
+
+.phone-icon {
+    font-size: 5em;
+    margin-bottom: 20px;
+    animation: rotatePhone 2s ease-in-out infinite;
+}
+
+@keyframes rotatePhone {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    50% {
+        transform: rotate(90deg);
+    }
+}
+
+.orientation-content h2 {
+    font-size: 2em;
+    margin-bottom: 15px;
+    color: #00d9ff;
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+}
+
+.orientation-content p {
+    font-size: 1.2em;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* 横屏时显示提示 */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    .orientation-modal {
+        display: flex !important;
+    }
+    
+    .game-wrapper {
+        display: none;
+    }
+}

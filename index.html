@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>俄罗斯方块</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <!-- 左侧信息面板 -->
+        <div class="side-panel left-panel">
+            <div class="info-box">
+                <h3>下一个</h3>
+                <canvas id="nextCanvas" width="120" height="120"></canvas>
+            </div>
+            <div class="info-box">
+                <h3>得分</h3>
+                <div class="score" id="score">0</div>
+            </div>
+            <div class="info-box">
+                <h3>等级</h3>
+                <div class="level" id="level">1</div>
+            </div>
+            <div class="info-box">
+                <h3>已消除</h3>
+                <div class="lines" id="lines">0</div>
+            </div>
+        </div>
+
+        <!-- 中间游戏区域 -->
+        <div class="game-area">
+            <h1>🎮 俄罗斯方块</h1>
+            
+            <!-- 移动端信息栏 -->
+            <div class="mobile-info-bar">
+                <div class="mobile-info-item">
+                    <span class="mobile-info-label">下一个</span>
+                    <canvas id="mobileNextCanvas" width="60" height="60"></canvas>
+                </div>
+                <div class="mobile-info-item">
+                    <span class="mobile-info-label">得分</span>
+                    <span class="mobile-info-value" id="mobileScore">0</span>
+                </div>
+                <div class="mobile-info-item">
+                    <span class="mobile-info-label">等级</span>
+                    <span class="mobile-info-value" id="mobileLevel">1</span>
+                </div>
+                <div class="mobile-info-item">
+                    <span class="mobile-info-label">已消除</span>
+                    <span class="mobile-info-value" id="mobileLines">0</span>
+                </div>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="300" height="500"></canvas>
+                <div class="game-over-modal hidden" id="gameOverModal">
+                    <h2>游戏结束</h2>
+                    <p>最终得分: <span id="finalScore">0</span></p>
+                    <p>消除行数: <span id="finalLines">0</span></p>
+                    <p>最高等级: <span id="finalLevel">1</span></p>
+                    <button id="restartBtn">重新开始</button>
+                </div>
+                <div class="pause-modal hidden" id="pauseModal">
+                    <h2>已暂停</h2>
+                    <button id="resumeBtn">继续游戏</button>
+                </div>
+            </div>
+            
+            <!-- 移动端控制按钮 - 圆形方向盘 -->
+            <div class="mobile-controls">
+                <div class="d-pad">
+                    <div class="d-pad-bg"></div>
+                    <button class="d-btn d-up" id="rotateBtn">↻</button>
+                    <button class="d-btn d-left" id="leftBtn">←</button>
+                    <button class="d-btn d-right" id="rightBtn">→</button>
+                    <button class="d-btn d-down" id="downBtn">↓</button>
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <button id="startBtn" class="btn-primary">开始游戏</button>
+                <button id="pauseBtn" class="btn-secondary">暂停</button>
+            </div>
+            
+            <div class="instructions">
+                <p>💻 电脑: ←→移动 | ↓加速 | ↑旋转 | 空格暂停</p>
+                <p>📱 手机: 使用下方按钮控制</p>
+            </div>
+        </div>
+
+        <!-- 右侧信息面板 -->
+        <div class="side-panel right-panel">
+            <div class="info-box">
+                <h3>操作说明</h3>
+                <div class="controls-list">
+                    <div class="control-item">
+                        <span class="key">←→</span>
+                        <span>左右移动</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">↓</span>
+                        <span>加速下落</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">↑</span>
+                        <span>旋转</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">空格</span>
+                        <span>暂停</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 横屏提示 -->
+        <div class="orientation-modal hidden" id="orientationModal">
+            <div class="orientation-content">
+                <div class="phone-icon">📱</div>
+                <h2>请竖屏游玩</h2>
+                <p>本游戏为竖屏设计<br>请将手机旋转至竖屏模式</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/tetris.js"></script>
+</body>
+</html>
