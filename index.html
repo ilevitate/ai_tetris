@@ -63,7 +63,14 @@
 
         <!-- 中间游戏区域 -->
         <div class="game-area">
-            <h1>🎮 俄罗斯方块</h1>
+            <h1 class="desktop-title">🎮 俄罗斯方块</h1>
+            <div class="mobile-header">
+                <h1>🎮 俄罗斯方块</h1>
+                <div class="header-controls">
+                    <button class="header-mute-btn" id="headerMuteBtn">🔊</button>
+                    <button class="header-start-btn" id="mobileStartBtn">开始</button>
+                </div>
+            </div>
             
             <!-- 移动端信息栏 -->
             <div class="mobile-info-bar">
@@ -76,10 +83,6 @@
                     <span class="mobile-info-value" id="mobileScore">0</span>
                 </div>
                 <div class="mobile-info-item">
-                    <span class="mobile-info-label">最高</span>
-                    <span class="mobile-info-value high-score" id="mobileHighScore">0</span>
-                </div>
-                <div class="mobile-info-item">
                     <span class="mobile-info-label">等级</span>
                     <span class="mobile-info-value" id="mobileLevel">1</span>
                 </div>
@@ -90,7 +93,7 @@
             </div>
             
             <div class="canvas-container">
-                <canvas id="gameCanvas" width="250" height="500"></canvas>
+                <canvas id="gameCanvas" width="250" height="600"></canvas>
                 <div class="game-over-modal hidden" id="gameOverModal">
                     <h2>游戏结束</h2>
                     <p>最终得分: <span id="finalScore">0</span></p>
@@ -104,14 +107,10 @@
             <!-- 移动端控制按钮 - 方向按钮 -->
             <div class="mobile-controls">
                 <div class="mobile-btn-row">
-                    <button class="mobile-dir-btn" id="rotateBtn">↻</button>
                     <button class="mobile-dir-btn" id="leftBtn">←</button>
-                    <button class="mobile-dir-btn mobile-drop-btn" id="dropBtn">⤓</button>
+                    <button class="mobile-dir-btn" id="rotateBtn">↻</button>
+                    <button class="mobile-dir-btn mobile-drop-btn" id="dropBtn">↓</button>
                     <button class="mobile-dir-btn" id="rightBtn">→</button>
-                    <button class="mobile-dir-btn" id="mobileMuteBtn">🔊</button>
-                </div>
-                <div class="mobile-control-row">
-                    <button class="mobile-control-btn-wide" id="mobileStartBtn">开始游戏</button>
                 </div>
             </div>
 

@@ -58,7 +58,8 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    padding: 10px; /* 防止内容贴边 */
+    padding: 5px;
+    margin: 0;
 }
 
 /* ===== 游戏包装器 ===== */
@@ -67,17 +68,16 @@ body {
     justify-content: center;
     align-items: flex-start;
     gap: 15px;
-    padding: 10px;
+    padding: 5px;
     max-width: 1200px;
     width: 100%;
-    max-height: 95vh; /* 防止在 Edge 浏览器中溢出 */
+    max-height: 100vh;
     overflow: hidden;
 }
 
 /* ===== 侧边面板 ===== */
 .side-panel {
-    background: rgba(255, 255, 255, 0.15); /* 半透明毛玻璃效果 */
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 12px;
     padding: 12px;
     min-width: 110px;
@@ -128,10 +128,11 @@ body {
 /* ===== 中间游戏区域 ===== */
 .game-area {
     text-align: center;
+    width: 100%;
 }
 
 /* 游戏标题 - 渐变色文字动画 */
-h1 {
+h1, .desktop-title {
     color: #fff;
     font-size: 2em;
     margin-bottom: 10px;
@@ -146,6 +147,17 @@ h1 {
     letter-spacing: 2px;
 }
 
+/* 桌面端标题 */
+.desktop-title {
+    display: block;
+}
+
+/* 移动端标题容器 */
+.mobile-header h1 {
+    margin-bottom: 0;
+    font-size: 1.8em;
+}
+
 /* 标题流光动画 */
 @keyframes shine {
     to {
@@ -158,7 +170,7 @@ h1 {
     position: relative;
     display: inline-block;
     width: 250px;   /* 固定宽度，与画布一致 */
-    height: 500px;  /* 固定高度，与画布一致 */
+    height: 600px;  /* 固定高度，24行 */
 }
 
 /* 游戏主画布 */
@@ -167,9 +179,9 @@ h1 {
     border-radius: 10px;
     border: 2px solid rgba(100, 150, 180, 0.4);
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
-    max-height: 75vh;
+    max-height: 85vh;
     width: 250px;   /* 固定宽度，避免闪烁 */
-    height: 500px;  /* 固定高度，避免闪烁 */
+    height: 600px;  /* 固定高度，24行 */
     /* 像素渲染优化：防止缩放时模糊 */
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
@@ -241,10 +253,10 @@ h1 {
     display: none;
     justify-content: center;
     align-items: flex-end;
-    width: 100%;
-    max-width: 320px;
-    gap: 24px;
-    padding: 10px 0;
+    width: calc(100vw - 20px);
+    max-width: 360px;
+    gap: 30px;
+    padding: 5px 0;
     margin: 0 auto;
 }
 
@@ -278,34 +290,77 @@ h1 {
     height: 40px;
 }
 
-/* 移动端开始/暂停按钮 */
-.mobile-control-btn {
-    width: 52px;
-    height: 52px;
-    border-radius: 12px;
+/* 移动端头部 - 标题和音效按钮 */
+.mobile-header {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    margin-top: 5px;
+}
+
+.mobile-header h1 {
+    margin-bottom: 0;
+    font-size: 1.6em;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.header-start-btn {
+    height: 26px;
     border: none;
-    background: linear-gradient(145deg, #00d9ff, #0099cc);
+    border-radius: 13px;
+    background: linear-gradient(145deg, rgba(0, 200, 255, 0.85), rgba(0, 140, 200, 0.85));
     color: #fff;
-    font-size: 0.75em;
-    font-weight: bold;
+    font-size: 0.55em;
+    font-weight: normal;
+    letter-spacing: 0.5px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0, 217, 255, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 180, 220, 0.4);
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    text-transform: uppercase;
-    flex-shrink: 0;
+    padding: 0 10px;
 }
 
-.mobile-control-btn:active {
+.header-start-btn:active {
     transform: scale(0.95);
-    box-shadow: 0 2px 6px rgba(0, 217, 255, 0.3);
+    box-shadow: 0 2px 6px rgba(0, 180, 220, 0.3);
 }
 
-.mobile-control-btn.paused {
-    background: linear-gradient(145deg, #ff6b6b, #cc5555);
-    box-shadow: 0 4px 10px rgba(255, 107, 107, 0.4);
+.header-start-btn.paused {
+    background: linear-gradient(145deg, rgba(255, 120, 120, 0.85), rgba(220, 80, 80, 0.85));
+    box-shadow: 0 3px 10px rgba(255, 100, 100, 0.4);
+}
+
+.header-mute-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-mute-btn:active {
+    transform: scale(0.9);
+}
+
+.header-mute-btn.muted {
+    color: #ff6b6b;
 }
 
 /* ===== 移动端控制按钮 - 方向按钮 ===== */
@@ -322,43 +377,88 @@ h1 {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
-}
-
-.mobile-control-row {
-    display: flex;
-    justify-content: center;
-    width: 100%;
+    width: calc(100vw - 48px);
+    max-width: 312px;
+    gap: 32px;
+    padding: 0;
 }
 
 .mobile-dir-btn {
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
     border: none;
     border-radius: 50%;
-    background: linear-gradient(145deg, rgba(100, 120, 140, 0.9), rgba(70, 90, 110, 0.9));
+    background: linear-gradient(180deg, rgba(110, 130, 150, 0.95) 0%, rgba(80, 100, 120, 0.95) 100%);
     color: #d0e0f0;
-    font-size: 1.3em;
+    font-size: 1.5em;
     cursor: pointer;
     box-shadow: 
-        0 4px 12px rgba(0, 0, 0, 0.4),
-        inset 0 2px 4px rgba(255, 255, 255, 0.15),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+        0 8px 24px rgba(0, 0, 0, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
     transition: all 0.15s ease;
     touch-action: manipulation;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(5px);
+    position: relative;
+    overflow: hidden;
+}
+
+.mobile-dir-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+    pointer-events: none;
+}
+
+.mobile-dir-btn:active::before {
+    width: 100%;
+    height: 100%;
 }
 
 .mobile-dir-btn:active {
     transform: scale(0.92);
     box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.4),
-        inset 0 3px 6px rgba(0, 0, 0, 0.3);
-    background: linear-gradient(145deg, rgba(120, 150, 180, 0.9), rgba(90, 120, 150, 0.9));
+        0 4px 12px rgba(0, 0, 0, 0.35),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(180deg, rgba(100, 120, 140, 0.95) 0%, rgba(70, 90, 110, 0.95) 100%);
     color: #fff;
+}
+
+.mobile-dir-btn.pressing {
+    animation: pulse-ring 0.8s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.3),
+            0 2px 4px rgba(0, 0, 0, 0.2),
+            inset 0 1px 1px rgba(255, 255, 255, 0.15),
+            0 0 0 0 rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.3),
+            0 2px 4px rgba(0, 0, 0, 0.2),
+            inset 0 1px 1px rgba(255, 255, 255, 0.15),
+            0 0 0 8px rgba(255, 255, 255, 0);
+    }
+    100% {
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.3),
+            0 2px 4px rgba(0, 0, 0, 0.2),
+            inset 0 1px 1px rgba(255, 255, 255, 0.15),
+            0 0 0 0 rgba(255, 255, 255, 0);
+    }
 }
 
 /* 旋转按钮使用蓝色高亮 */
@@ -372,49 +472,6 @@ h1 {
 
 #rotateBtn:active {
     background: linear-gradient(145deg, #2d7dd8, #4a9eff);
-}
-
-/* 直接掉落按钮使用橙色高亮 */
-.mobile-drop-btn {
-    background: linear-gradient(145deg, #ffb347, #ff8c42);
-    color: #fff;
-    box-shadow: 
-        0 4px 15px rgba(255, 140, 66, 0.5),
-        inset 0 2px 4px rgba(255, 255, 255, 0.2);
-}
-
-.mobile-drop-btn:active {
-    background: linear-gradient(145deg, #ff8c42, #ffb347);
-}
-
-/* 移动端开始/暂停按钮 - 宽版 */
-.mobile-control-btn-wide {
-    width: 85%;
-    height: 36px;
-    border-radius: 18px;
-    border: none;
-    background: linear-gradient(145deg, #00c6ff, #0072ff);
-    color: #fff;
-    font-size: 0.8em;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
-.mobile-control-btn-wide:active {
-    transform: scale(0.98);
-    box-shadow: 0 2px 8px rgba(0, 114, 255, 0.3);
-}
-
-.mobile-control-btn-wide.paused {
-    background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
 }
 
 /* ===== 游戏控制按钮 ===== */
@@ -517,52 +574,56 @@ h1 {
         flex-direction: column;
         align-items: center;
         padding: 5px;
-        gap: 8px;
+        gap: 5px;
+        width: 100%;
     }
     
     .side-panel {
         display: none;
     }
     
-    h1 {
-        font-size: 2em;
-        margin-bottom: 10px;
+    .desktop-title {
+        display: none;
+    }
+    
+    .mobile-header {
+        display: flex;
     }
     
     .canvas-container {
-        width: auto;
-        height: auto;
-        max-width: min(92vw, 340px);
-        max-height: 60vh;
-        /* 保持 250x500 = 1:2 的固定比例 */
-        aspect-ratio: 250/500;
+        width: calc(100vw - 20px);
+        height: calc((100vw - 20px) * 2.4);
+        max-width: 340px;
+        max-height: 70vh;
+        margin: 0 auto;
     }
     
     #gameCanvas {
         width: 100%;
         height: 100%;
-        /* 移动端保持像素比例，防止拉伸模糊 */
-        object-fit: contain;
+        display: block;
     }
     
     .mobile-controls {
         display: flex;
         justify-content: center;
-        margin-top: 8px;
+        margin-top: 5px;
     }
     
     .mobile-btn-row {
         display: flex;
         flex-direction: row;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
-        gap: 24px;
+        width: calc(100vw - 48px);
+        max-width: 312px;
+        gap: 32px;
     }
     
     .mobile-dir-btn {
-        width: 46px;
-        height: 46px;
-        font-size: 1.2em;
+        width: 60px;
+        height: 60px;
+        font-size: 1.5em;
     }
     
     .mobile-info-bar {
@@ -590,7 +651,7 @@ h1 {
     }
     
     .mobile-info-bar {
-        gap: 20px;
+        gap: 24px;
         padding: 8px 0;
     }
     
@@ -606,13 +667,15 @@ h1 {
     }
     
     .mobile-dir-btn {
-        width: 44px;
-        height: 44px;
-        font-size: 1.1em;
+        width: 52px;
+        height: 52px;
+        font-size: 1.3em;
     }
     
     .mobile-btn-row {
-        gap: 20px;
+        width: calc(100vw - 48px);
+        max-width: 312px;
+        gap: 28px;
     }
 }
 
