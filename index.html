@@ -1,7 +1,35 @@
 <!DOCTYPE html>
+<!--
+  @fileoverview 俄罗斯方块游戏 - 主页面
+  
+  @description
+  游戏主页面，包含完整的UI布局和响应式设计。
+  支持桌面端三栏布局和移动端单栏布局。
+  
+  @pageStructure
+  - 左侧信息面板: 下一个方块预览、得分、最高分、等级、已消除行数（桌面端）
+  - 中间游戏区域: 标题、移动端信息栏、游戏画布、控制按钮
+  - 右侧信息面板: 操作说明（桌面端）
+  - 横屏提示: 移动端横屏时显示引导提示
+  
+  @mobileLayout
+  - 顶部: 游戏标题 + 信息栏（下一个、得分、最高、等级、已消除）
+  - 中部: 游戏画布（自适应，保持1:2比例）
+  - 底部: 方向按钮（↻ ← ⤓ → 🔊）+ 开始/暂停按钮
+  
+  @responsiveBreakpoints
+  - 桌面端: > 900px，三栏布局
+  - 移动端: ≤ 900px，单栏布局
+  - 小屏幕: ≤ 480px，紧凑布局
+  
+  @version 1.4.0
+  @since 2026-03-13
+  @license MIT
+-->
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <!-- 视口设置: 禁止缩放，优化移动端体验 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>俄罗斯方块</title>
@@ -18,6 +46,10 @@
             <div class="info-box">
                 <h3>得分</h3>
                 <div class="score" id="score">0</div>
+            </div>
+            <div class="info-box">
+                <h3>最高分</h3>
+                <div class="high-score" id="highScore">0</div>
             </div>
             <div class="info-box">
                 <h3>等级</h3>
@@ -44,6 +76,10 @@
                     <span class="mobile-info-value" id="mobileScore">0</span>
                 </div>
                 <div class="mobile-info-item">
+                    <span class="mobile-info-label">最高</span>
+                    <span class="mobile-info-value high-score" id="mobileHighScore">0</span>
+                </div>
+                <div class="mobile-info-item">
                     <span class="mobile-info-label">等级</span>
                     <span class="mobile-info-value" id="mobileLevel">1</span>
                 </div>
@@ -54,7 +90,7 @@
             </div>
             
             <div class="canvas-container">
-                <canvas id="gameCanvas" width="300" height="500"></canvas>
+                <canvas id="gameCanvas" width="250" height="500"></canvas>
                 <div class="game-over-modal hidden" id="gameOverModal">
                     <h2>游戏结束</h2>
                     <p>最终得分: <span id="finalScore">0</span></p>
@@ -62,26 +98,27 @@
                     <p>最高等级: <span id="finalLevel">1</span></p>
                     <button id="restartBtn">重新开始</button>
                 </div>
-                <div class="pause-modal hidden" id="pauseModal">
-                    <h2>已暂停</h2>
-                    <button id="resumeBtn">继续游戏</button>
-                </div>
+
             </div>
             
-            <!-- 移动端控制按钮 - 圆形方向盘 -->
+            <!-- 移动端控制按钮 - 方向按钮 -->
             <div class="mobile-controls">
-                <div class="d-pad">
-                    <div class="d-pad-bg"></div>
-                    <button class="d-btn d-up" id="rotateBtn">↻</button>
-                    <button class="d-btn d-left" id="leftBtn">←</button>
-                    <button class="d-btn d-right" id="rightBtn">→</button>
-                    <button class="d-btn d-down" id="downBtn">↓</button>
+                <div class="mobile-btn-row">
+                    <button class="mobile-dir-btn" id="rotateBtn">↻</button>
+                    <button class="mobile-dir-btn" id="leftBtn">←</button>
+                    <button class="mobile-dir-btn mobile-drop-btn" id="dropBtn">⤓</button>
+                    <button class="mobile-dir-btn" id="rightBtn">→</button>
+                    <button class="mobile-dir-btn" id="mobileMuteBtn">🔊</button>
+                </div>
+                <div class="mobile-control-row">
+                    <button class="mobile-control-btn-wide" id="mobileStartBtn">开始游戏</button>
                 </div>
             </div>
 
             <div class="game-controls">
                 <button id="startBtn" class="btn-primary">开始游戏</button>
                 <button id="pauseBtn" class="btn-secondary">暂停</button>
+                <button id="muteBtn" class="btn-mute">🔊</button>
             </div>
             
             <div class="instructions">
@@ -125,6 +162,7 @@
         </div>
     </div>
 
+    <script src="js/audio.js"></script>
     <script src="js/tetris.js"></script>
 </body>
 </html>

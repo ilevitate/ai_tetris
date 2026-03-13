@@ -1,92 +1,193 @@
 /**
- * 俄罗斯方块游戏 - 核心逻辑
+ * @fileoverview 俄罗斯方块游戏 - 核心逻辑控制器
  * 
- * 游戏架构:
- * - TetrisGame 类: 游戏主控制器
- * - 游戏循环: requestAnimationFrame 实现 60fps
- * - 渲染系统: Canvas 2D 绘制
- * - 输入处理: 键盘 + 触摸 + 按钮
- * - 动画系统: 消除行时的渐隐动画
+ * @description
+ * 一个功能完整的俄罗斯方块游戏实现，支持桌面端和移动端。
+ * 采用面向对象架构，使用 Canvas 2D 进行渲染，requestAnimationFrame 实现流畅动画。
  * 
- * 坐标系统:
- * - 游戏板: 15列 x 25行
- * - 方块大小: 20px
- * - 画布尺寸: 300px x 500px
+ * @architecture
+ * - TetrisGame 类: 游戏主控制器，管理游戏状态和逻辑
+ * - 游戏循环: requestAnimationFrame 实现 60fps 流畅体验
+ * - 渲染系统: Canvas 2D 绘制 + 离屏渲染优化性能
+ * - 输入处理: 键盘事件 + 触摸滑动 + 移动端方向按钮
+ * - 动画系统: 消除行时的缩放渐隐动画效果
+ * - 移动端优化: 无延迟触摸 + 长按连击 + 触觉反馈
+ * 
+ * @gameMechanics
+ * - 标准 10列 x 20行 游戏板
+ * - 7种经典方块（I、O、T、S、Z、J、L）
+ * - 踢墙系统（Wall Kick）：旋转时自动调整位置
+ * - 等级系统：最高10级，速度递增
+ * - 得分系统：消除得分 + 软降/硬降奖励
+ * - 阴影提示：预览落点位置（随等级消失）
+ * 
+ * @coordinateSystem
+ * - 游戏板: 10列 x 20行（标准尺寸）
+ * - 方块大小: 25px
+ * - 画布尺寸: 250px x 500px（桌面端固定）
+ * - 移动端画布: 自适应宽度，保持1:2比例
+ * 
+ * @performanceOptimization
+ * - 离屏 Canvas 预渲染静态网格
+ * - imageSmoothingEnabled = false 确保像素清晰
+ * - 整数坐标绘制避免子像素模糊
+ * - desynchronized: true 减少渲染延迟
+ * 
+ * @author 游戏开发团队
+ * @version 1.4.0
+ * @since 2026-03-13
+ * @license MIT
  */
 
 class TetrisGame {
     /**
-     * 构造函数 - 初始化游戏状态和配置
+     * 游戏配置常量
+     * 集中管理所有可配置的游戏参数
+     * @readonly
+     * @static
+     */
+    static CONFIG = {
+        // ========== 游戏板配置 ==========
+        COLS: 10,           /**< @type {number} 游戏板列数（标准10列） */
+        ROWS: 20,           /**< @type {number} 游戏板行数（标准20行） */
+        BLOCK_SIZE: 25,     /**< @type {number} 方块大小（像素） */
+        
+        // ========== 画布尺寸 ==========
+        CANVAS_WIDTH: 250,  /**< @type {number} 画布宽度（像素） */
+        CANVAS_HEIGHT: 500, /**< @type {number} 画布高度（像素） */
+        
+        // ========== 游戏循环配置 ==========
+        INITIAL_DROP_INTERVAL: 1000,  /**< @type {number} 初始下落间隔（毫秒） */
+        MIN_DROP_INTERVAL: 100,       /**< @type {number} 最小下落间隔（毫秒） */
+        DROP_INTERVAL_DECREMENT: 100, /**< @type {number} 每级减少的下落间隔（毫秒） */
+        
+        // ========== 等级系统 ==========
+        MAX_LEVEL: 10,      /**< @type {number} 最高等级上限 */
+        LINES_PER_LEVEL: 10, /**< @type {number} 每升一级所需消除行数 */
+        
+        // ========== 得分系统 ==========
+        /** @type {number[]} 消除1-4行的基础得分，索引对应行数 */
+        SCORES: [0, 100, 300, 600, 1000],
+        SOFT_DROP_SCORE: 1,   /**< @type {number} 软降（按↓键）每行得分 */
+        HARD_DROP_SCORE: 2,   /**< @type {number} 硬降（直接掉落）每行得分 */
+        
+        // ========== 阴影提示配置 ==========
+        SHADOW_MAX_LEVEL: 2,  /**< @type {number} 显示阴影的最高等级（超过后隐藏） */
+        SHADOW_ALPHA_LEVEL1: 0.3, /**< @type {number} 1级阴影透明度 */
+        SHADOW_ALPHA_LEVEL2: 0.15, /**< @type {number} 2级阴影透明度 */
+        
+        // ========== 动画配置 ==========
+        CLEAR_ANIMATION_SPEED: 2, /**< @type {number} 消除动画速度（每秒进度） */
+        
+        // ========== 移动端控制配置 ==========
+        LONG_PRESS_DELAY: 200,    /**< @type {number} 长按触发延迟（毫秒） */
+        REPEAT_INTERVAL: 80,      /**< @type {number} 长按连击间隔（毫秒） */
+        MIN_SWIPE_DISTANCE: 30,   /**< @type {number} 触摸滑动最小识别距离（像素） */
+        
+        // ========== 音效配置 ==========
+        AUDIO_VOLUME: 0.3         /**< @type {number} 默认音量（0-1） */
+    };
+    /**
+     * 构造函数 - 初始化游戏实例
+     * 配置画布、初始化游戏状态、绑定事件
+     * @constructor
      */
     constructor() {
-        // ========== 画布配置 ==========
-        // 游戏主画布 - 显示当前游戏状态
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        const cfg = TetrisGame.CONFIG;
         
-        // 下一个方块预览画布 - 桌面端侧边显示
+        // ========== 画布配置 ==========
+        /** @type {HTMLCanvasElement} 游戏主画布 */
+        this.canvas = document.getElementById('gameCanvas');
+        /** @type {CanvasRenderingContext2D} 主画布2D上下文 */
+        this.ctx = this.canvas.getContext('2d', { alpha: false, desynchronized: true });
+        
+        // 设置画布尺寸
+        this.canvas.width = cfg.CANVAS_WIDTH;
+        this.canvas.height = cfg.CANVAS_HEIGHT;
+        
+        // 禁用图像平滑以保持像素清晰
+        this.ctx.imageSmoothingEnabled = false;
+        
+        /** @type {HTMLCanvasElement} 下一个方块预览画布（桌面端） */
         this.nextCanvas = document.getElementById('nextCanvas');
+        /** @type {CanvasRenderingContext2D} 预览画布上下文 */
         this.nextCtx = this.nextCanvas.getContext('2d');
         
-        // ========== 游戏配置 ==========
-        this.cols = 15;       // 游戏板列数
-        this.rows = 25;       // 游戏板行数
-        this.blockSize = 20;  // 每个方块的像素大小
+        // ========== 离屏渲染画布（性能优化） ==========
+        /** @type {HTMLCanvasElement} 离屏画布，用于预渲染静态元素 */
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCanvas.width = cfg.CANVAS_WIDTH;
+        this.offscreenCanvas.height = cfg.CANVAS_HEIGHT;
+        /** @type {CanvasRenderingContext2D} 离屏画布上下文 */
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d', { alpha: true });
+        this.offscreenCtx.imageSmoothingEnabled = false;
+        
+        // ========== 游戏板配置 ==========
+        /** @type {number} 游戏板列数 */
+        this.cols = cfg.COLS;
+        /** @type {number} 游戏板行数 */
+        this.rows = cfg.ROWS;
+        /** @type {number} 方块大小（像素） */
+        this.blockSize = cfg.BLOCK_SIZE;
         
         // ========== 游戏状态 ==========
-        this.board = [];          // 二维数组，存储已固定的方块颜色
-        this.currentPiece = null; // 当前下落的方块对象
-        this.nextPiece = null;    // 下一个方块对象（用于预览）
-        this.score = 0;           // 当前得分
-        this.level = 1;           // 当前等级（1-10）
-        this.lines = 0;           // 已消除行数
+        /** @type {(string|0)[][]} 游戏板二维数组，0表示空，字符串表示颜色 */
+        this.board = [];
+        /** @type {Object|null} 当前下落的方块对象 */
+        this.currentPiece = null;
+        /** @type {Object|null} 下一个方块对象（用于预览） */
+        this.nextPiece = null;
+        /** @type {number} 当前得分 */
+        this.score = 0;
+        /** @type {number} 当前等级（1-10） */
+        this.level = 1;
+        /** @type {number} 已消除行数 */
+        this.lines = 0;
+        /** @type {number} 最高分记录 */
+        this.highScore = this.loadHighScore();
+        
+        // ========== 音效管理器 ==========
+        /** @type {AudioManager} 音效管理器实例 */
+        this.audio = new AudioManager();
         
         // ========== 游戏循环状态 ==========
-        this.gameLoop = null;      // requestAnimationFrame ID
-        this.isRunning = false;    // 游戏是否进行中
-        this.isPaused = false;     // 游戏是否暂停
-        this.dropCounter = 0;      // 下落计时器（毫秒）
-        this.dropInterval = 1000;  // 下落间隔（随等级减少）
-        this.lastTime = 0;         // 上一帧时间戳
+        /** @type {number|null} requestAnimationFrame ID */
+        this.gameLoop = null;
+        /** @type {boolean} 游戏是否进行中 */
+        this.isRunning = false;
+        /** @type {boolean} 游戏是否暂停 */
+        this.isPaused = false;
+        /** @type {number} 下落计时器（毫秒） */
+        this.dropCounter = 0;
+        /** @type {number} 当前下落间隔（毫秒） */
+        this.dropInterval = cfg.INITIAL_DROP_INTERVAL;
+        /** @type {number} 上一帧时间戳 */
+        this.lastTime = 0;
         
         // ========== 消除动画状态 ==========
-        this.clearingLines = [];        // 正在播放消除动画的行索引
-        this.clearAnimationProgress = 0; // 动画进度 0.0 - 1.0
-        this.isClearing = false;        // 是否正在播放消除动画
+        /** @type {number[]} 正在播放消除动画的行索引 */
+        this.clearingLines = [];
+        /** @type {number} 消除动画进度（0.0 - 1.0） */
+        this.clearAnimationProgress = 0;
+        /** @type {boolean} 是否正在播放消除动画 */
+        this.isClearing = false;
         
         // ========== 方块形状定义 ==========
-        // 7种经典俄罗斯方块形状和颜色
+        /**
+         * 7种经典俄罗斯方块定义
+         * @type {Object.<string, {shape: number[][], color: string}>}
+         */
         this.pieces = {
-            I: {
-                shape: [[1, 1, 1, 1]],  // 长条
-                color: '#00f0f0'         // 青色
-            },
-            O: {
-                shape: [[1, 1], [1, 1]], // 正方形
-                color: '#f0f000'          // 黄色
-            },
-            T: {
-                shape: [[0, 1, 0], [1, 1, 1]], // T形
-                color: '#a000f0'                // 紫色
-            },
-            S: {
-                shape: [[0, 1, 1], [1, 1, 0]], // S形
-                color: '#00f000'                // 绿色
-            },
-            Z: {
-                shape: [[1, 1, 0], [0, 1, 1]], // Z形
-                color: '#f00000'                // 红色
-            },
-            J: {
-                shape: [[1, 0, 0], [1, 1, 1]], // J形
-                color: '#0000f0'                // 蓝色
-            },
-            L: {
-                shape: [[0, 0, 1], [1, 1, 1]], // L形
-                color: '#f0a000'                // 橙色
-            }
+            I: { shape: [[1, 1, 1, 1]], color: '#00f0f0' },      // 长条 - 青色
+            O: { shape: [[1, 1], [1, 1]], color: '#f0f000' },     // 正方形 - 黄色
+            T: { shape: [[0, 1, 0], [1, 1, 1]], color: '#a000f0' }, // T形 - 紫色
+            S: { shape: [[0, 1, 1], [1, 1, 0]], color: '#00f000' }, // S形 - 绿色
+            Z: { shape: [[1, 1, 0], [0, 1, 1]], color: '#f00000' }, // Z形 - 红色
+            J: { shape: [[1, 0, 0], [1, 1, 1]], color: '#0000f0' }, // J形 - 蓝色
+            L: { shape: [[0, 0, 1], [1, 1, 1]], color: '#f0a000' }  // L形 - 橙色
         };
         
+        /** @type {string[]} 方块类型名称数组 */
         this.pieceNames = Object.keys(this.pieces);
         
         // 初始化游戏
@@ -98,9 +199,71 @@ class TetrisGame {
      */
     init() {
         this.createBoard();      // 创建空游戏板
+        this.renderStaticGrid(); // 预渲染静态网格
         this.bindEvents();       // 绑定键盘和触摸事件
         this.detectOrientation(); // 设置横屏检测
         this.draw();             // 绘制初始画面
+        this.updateUI();         // 更新UI显示最高分
+    }
+    
+    /**
+     * 预渲染静态网格到离屏Canvas
+     * 避免每帧重复绘制网格线，提升性能
+     * 使用整数坐标确保线条清晰锐利
+     */
+    renderStaticGrid() {
+        const ctx = this.offscreenCtx;
+        const cfg = TetrisGame.CONFIG;
+        
+        // 清空离屏画布
+        ctx.clearRect(0, 0, cfg.CANVAS_WIDTH, cfg.CANVAS_HEIGHT);
+        
+        // 绘制网格线 - 使用0.5偏移确保1px线条清晰
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
+        
+        // 垂直线
+        for (let x = 0; x <= this.cols; x++) {
+            const px = Math.floor(x * this.blockSize) + 0.5;
+            ctx.beginPath();
+            ctx.moveTo(px, 0);
+            ctx.lineTo(px, cfg.CANVAS_HEIGHT);
+            ctx.stroke();
+        }
+        
+        // 水平线
+        for (let y = 0; y <= this.rows; y++) {
+            const py = Math.floor(y * this.blockSize) + 0.5;
+            ctx.beginPath();
+            ctx.moveTo(0, py);
+            ctx.lineTo(cfg.CANVAS_WIDTH, py);
+            ctx.stroke();
+        }
+    }
+    
+    /**
+     * 从本地存储加载最高分
+     * @returns {number} 最高分
+     */
+    loadHighScore() {
+        try {
+            const saved = localStorage.getItem('tetrisHighScore');
+            return saved ? parseInt(saved, 10) : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * 保存最高分到本地存储
+     * @param {number} score - 分数
+     */
+    saveHighScore(score) {
+        try {
+            localStorage.setItem('tetrisHighScore', score.toString());
+        } catch (e) {
+            console.warn('Failed to save high score:', e);
+        }
     }
     
     /**
@@ -155,49 +318,58 @@ class TetrisGame {
         document.addEventListener('keydown', (e) => this.handleKeydown(e));
         
         // ========== 按钮控制 ==========
-        document.getElementById('startBtn').addEventListener('click', () => this.start());
-        document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
-        document.getElementById('restartBtn').addEventListener('click', () => this.restart());
-        document.getElementById('resumeBtn').addEventListener('click', () => this.togglePause());
-        
-        // ========== 移动端按钮控制 ==========
-        document.getElementById('leftBtn').addEventListener('click', () => this.move(-1));
-        document.getElementById('rightBtn').addEventListener('click', () => this.move(1));
-        document.getElementById('downBtn').addEventListener('click', () => this.drop());
-        
-        // 下键长按快速下落功能
-        let dropInterval = null;
-        const downBtn = document.getElementById('downBtn');
-        
-        const startFastDrop = () => {
-            if (dropInterval) return;
-            this.drop();
-            dropInterval = setInterval(() => {
-                if (this.isRunning && !this.isPaused) {
-                    this.drop();
-                }
-            }, 100);
-        };
-        
-        const stopFastDrop = () => {
-            if (dropInterval) {
-                clearInterval(dropInterval);
-                dropInterval = null;
-            }
-        };
-        
-        // 鼠标事件（桌面端）
-        downBtn.addEventListener('mousedown', startFastDrop);
-        downBtn.addEventListener('mouseup', stopFastDrop);
-        downBtn.addEventListener('mouseleave', stopFastDrop);
-        // 触摸事件（移动端）
-        downBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startFastDrop();
+        document.getElementById('startBtn').addEventListener('click', () => {
+            this.audio.playButtonClick();
+            this.start();
         });
-        downBtn.addEventListener('touchend', stopFastDrop);
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            this.audio.playButtonClick();
+            this.togglePause();
+        });
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            this.audio.playButtonClick();
+            this.restart();
+        });
         
-        document.getElementById('rotateBtn').addEventListener('click', () => this.rotate());
+        // 音效开关按钮
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) {
+            muteBtn.addEventListener('click', () => {
+                const isEnabled = this.audio.toggle();
+                muteBtn.textContent = isEnabled ? '🔊' : '🔇';
+                muteBtn.classList.toggle('muted', !isEnabled);
+            });
+        }
+        
+        // 移动端音效开关按钮
+        const mobileMuteBtn = document.getElementById('mobileMuteBtn');
+        if (mobileMuteBtn) {
+            mobileMuteBtn.addEventListener('click', () => {
+                const isEnabled = this.audio.toggle();
+                const newText = isEnabled ? '🔊' : '🔇';
+                mobileMuteBtn.textContent = newText;
+                if (muteBtn) muteBtn.textContent = newText;
+            });
+        }
+        
+        // 移动端开始/暂停按钮
+        const mobileStartBtn = document.getElementById('mobileStartBtn');
+        if (mobileStartBtn) {
+            mobileStartBtn.addEventListener('click', () => {
+                this.audio.playButtonClick();
+                if (!this.isRunning) {
+                    this.start();
+                } else {
+                    this.togglePause();
+                }
+            });
+        }
+        
+        // ========== 移动端按钮控制 - 使用touchstart消除300ms延迟 ==========
+        this.setupMobileButton('leftBtn', () => this.move(-1));
+        this.setupMobileButton('rightBtn', () => this.move(1));
+        this.setupMobileButton('dropBtn', () => this.hardDrop());
+        this.setupMobileButton('rotateBtn', () => this.rotate());
         
         // ========== 触摸滑动控制 ==========
         let touchStartX = 0;
@@ -217,7 +389,8 @@ class TetrisGame {
             const dx = touchEndX - touchStartX;
             const dy = touchEndY - touchStartY;
             
-            const minSwipe = 30;  // 最小滑动距离（像素）
+            const cfg = TetrisGame.CONFIG;
+            const minSwipe = cfg.MIN_SWIPE_DISTANCE;
             
             if (Math.abs(dx) > Math.abs(dy)) {
                 // 水平滑动 - 左右移动
@@ -243,6 +416,116 @@ class TetrisGame {
             }
             lastTouchEnd = now;
         }, {passive: false});
+    }
+    
+    /**
+     * 设置移动端按钮 - 支持无延迟触摸和长按连续操作
+     * @param {string} btnId - 按钮ID
+     * @param {Function} action - 执行的动作函数
+     */
+    setupMobileButton(btnId, action) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        
+        const cfg = TetrisGame.CONFIG;
+        let touchStarted = false;
+        let longPressTimer = null;
+        let repeatTimer = null;
+        
+        // 执行动作并添加触觉反馈
+        const doAction = () => {
+            if (this.isRunning && !this.isPaused) {
+                action();
+                // 添加触觉反馈（如果设备支持）
+                if (navigator.vibrate) {
+                    navigator.vibrate(10);
+                }
+            }
+        };
+        
+        // 播放对应音效
+        const playSound = () => {
+            if (!this.isRunning || this.isPaused) return;
+            switch(btnId) {
+                case 'leftBtn':
+                case 'rightBtn':
+                    this.audio.playMove();
+                    break;
+                case 'rotateBtn':
+                    this.audio.playRotate();
+                    break;
+                case 'dropBtn':
+                    this.audio.playDrop();
+                    break;
+            }
+        };
+        
+        // 开始长按重复
+        const startRepeat = () => {
+            // 左右移动按钮支持长按连续移动
+            if (btnId === 'leftBtn' || btnId === 'rightBtn') {
+                repeatTimer = setInterval(() => {
+                    doAction();
+                }, cfg.REPEAT_INTERVAL);
+            }
+        };
+        
+        // 清除所有定时器
+        const clearTimers = () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            if (repeatTimer) {
+                clearInterval(repeatTimer);
+                repeatTimer = null;
+            }
+        };
+        
+        // touchstart - 立即执行，无延迟
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 阻止默认行为，防止300ms延迟
+            touchStarted = true;
+            doAction();
+            playSound(); // 播放音效
+            
+            // 长按延迟后开始重复
+            longPressTimer = setTimeout(() => {
+                startRepeat();
+            }, cfg.LONG_PRESS_DELAY);
+        }, {passive: false});
+        
+        // touchend - 清除定时器
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchStarted = false;
+            clearTimers();
+        });
+        
+        // touchcancel - 清除定时器
+        btn.addEventListener('touchcancel', (e) => {
+            touchStarted = false;
+            clearTimers();
+        });
+        
+        // 鼠标事件支持（用于桌面端测试）
+        btn.addEventListener('mousedown', (e) => {
+            if (!touchStarted) {
+                doAction();
+                playSound(); // 播放音效
+                longPressTimer = setTimeout(() => {
+                    startRepeat();
+                }, cfg.LONG_PRESS_DELAY);
+            }
+        });
+        
+        btn.addEventListener('mouseup', () => {
+            clearTimers();
+        });
+        
+        btn.addEventListener('mouseleave', () => {
+            clearTimers();
+        });
     }
     
     /**
@@ -274,21 +557,25 @@ class TetrisGame {
             case 'a':
             case 'A':
                 this.move(-1);  // 左移
+                this.audio.playMove();
                 break;
             case 'ArrowRight':
             case 'd':
             case 'D':
                 this.move(1);   // 右移
+                this.audio.playMove();
                 break;
             case 'ArrowDown':
             case 's':
             case 'S':
                 this.drop();    // 加速下落
+                this.audio.playDrop();
                 break;
             case 'ArrowUp':
             case 'w':
             case 'W':
                 this.rotate();  // 旋转
+                this.audio.playRotate();
                 break;
         }
     }
@@ -311,6 +598,7 @@ class TetrisGame {
     /**
      * 旋转当前方块
      * 使用矩阵转置算法：new[y][x] = old[x][height-1-y]
+     * 支持基础踢墙（Wall Kick）：旋转后碰撞时尝试左右移动适应
      */
     rotate() {
         if (!this.currentPiece || this.isPaused) return;
@@ -321,11 +609,37 @@ class TetrisGame {
         );
         
         const previousShape = this.currentPiece.shape;
+        const previousX = this.currentPiece.x;
         this.currentPiece.shape = rotated;
         
-        // 如果旋转后发生碰撞，则恢复原形状（防止旋转到墙内）
-        if (this.collision()) {
+        // 基础踢墙系统：尝试不同偏移量来适应旋转
+        // 偏移顺序：0（原位）、左1、右1、左2、右2、上移1（针对I方块）
+        const kicks = [0, -1, 1, -2, 2];
+        let kickSuccess = false;
+        
+        for (const kick of kicks) {
+            this.currentPiece.x = previousX + kick;
+            if (!this.collision()) {
+                kickSuccess = true;
+                break;
+            }
+        }
+        
+        // 如果水平踢墙都失败，尝试上移（针对I方块顶部旋转）
+        if (!kickSuccess) {
+            this.currentPiece.x = previousX;
+            this.currentPiece.y -= 1;
+            if (!this.collision()) {
+                kickSuccess = true;
+            } else {
+                this.currentPiece.y += 1; // 回退上移
+            }
+        }
+        
+        // 如果所有踢墙都失败，恢复原状态
+        if (!kickSuccess) {
             this.currentPiece.shape = previousShape;
+            this.currentPiece.x = previousX;
         }
         
         this.draw();
@@ -338,19 +652,21 @@ class TetrisGame {
     move(dir) {
         if (!this.currentPiece || this.isPaused) return;
         
+        const oldX = this.currentPiece.x;
         this.currentPiece.x += dir;
         
         // 如果移动后碰撞，则回退
         if (this.collision()) {
-            this.currentPiece.x -= dir;
+            this.currentPiece.x = oldX;
         }
         
         this.draw();
     }
     
     /**
-     * 下落一格
+     * 下落一格（软降）
      * 如果下落到底部或碰到其他方块，则固定并生成新方块
+     * 软降每下落一行获得1分
      */
     drop() {
         if (!this.currentPiece || this.isPaused) return;
@@ -363,6 +679,10 @@ class TetrisGame {
             this.merge();           // 固定到游戏板
             this.clearLines();      // 检测消除
             this.spawnPiece();      // 生成新方块
+        } else {
+            // 软降成功下落，获得分数
+            this.score += TetrisGame.CONFIG.SOFT_DROP_SCORE;
+            this.updateUI();
         }
         
         this.dropCounter = 0;  // 重置下落计时器
@@ -371,9 +691,12 @@ class TetrisGame {
     
     /**
      * 快速下落（硬降）- 直接落到最底部
+     * 硬降每下落一行获得2分
      */
     hardDrop() {
         if (!this.currentPiece || this.isPaused) return;
+        
+        const startY = this.currentPiece.y;
         
         // 一直下落直到碰撞
         while (!this.collision()) {
@@ -381,6 +704,14 @@ class TetrisGame {
         }
         
         this.currentPiece.y--;  // 回退到有效位置
+        
+        // 计算硬降行数并奖励分数
+        const dropDistance = this.currentPiece.y - startY;
+        if (dropDistance > 0) {
+            this.score += dropDistance * TetrisGame.CONFIG.HARD_DROP_SCORE;
+            this.updateUI();
+        }
+        
         this.merge();
         this.clearLines();
         this.spawnPiece();
@@ -481,14 +812,28 @@ class TetrisGame {
             this.clearAnimationProgress = 0;
             this.isClearing = true;
             
+            // 播放消除音效
+            this.audio.playClear(linesToClear.length);
+            
             // 更新游戏数据
+            const cfg = TetrisGame.CONFIG;
             this.lines += linesToClear.length;
+            const oldLevel = this.level;
             this.score += this.calculateScore(linesToClear.length);
-            this.level = Math.floor(this.lines / 10) + 1;
-            // 等级上限为10级
-            this.level = Math.min(this.level, 10);
-            // 计算新的下落间隔（每升1级减少100ms，最低100ms）
-            this.dropInterval = Math.max(100, 1000 - (this.level - 1) * 100);
+            this.level = Math.floor(this.lines / cfg.LINES_PER_LEVEL) + 1;
+            // 等级上限
+            this.level = Math.min(this.level, cfg.MAX_LEVEL);
+            
+            // 播放升级音效
+            if (this.level > oldLevel) {
+                this.audio.playLevelUp();
+            }
+            
+            // 计算新的下落间隔
+            this.dropInterval = Math.max(
+                cfg.MIN_DROP_INTERVAL, 
+                cfg.INITIAL_DROP_INTERVAL - (this.level - 1) * cfg.DROP_INTERVAL_DECREMENT
+            );
             
             this.updateUI();
         }
@@ -502,9 +847,8 @@ class TetrisGame {
     updateClearAnimation(deltaTime) {
         if (!this.isClearing) return;
         
-        // 动画速度：0.5秒内完成（speed = 2 表示每秒完成2次动画）
-        const animationSpeed = 2;
-        this.clearAnimationProgress += deltaTime / 1000 * animationSpeed;
+        const cfg = TetrisGame.CONFIG;
+        this.clearAnimationProgress += deltaTime / 1000 * cfg.CLEAR_ANIMATION_SPEED;
         
         if (this.clearAnimationProgress >= 1) {
             // 动画完成，真正消除行
@@ -525,9 +869,8 @@ class TetrisGame {
      * @returns {number} 得分
      */
     calculateScore(lines) {
-        // 连消奖励：1行100分，2行300分，3行600分，4行1000分
-        const scores = [0, 100, 300, 600, 1000];
-        return scores[lines] * this.level;  // 乘以当前等级
+        const cfg = TetrisGame.CONFIG;
+        return cfg.SCORES[lines] * this.level;  // 乘以当前等级
     }
     
     /**
@@ -554,18 +897,30 @@ class TetrisGame {
     start() {
         if (this.isRunning) return;
         
+        const cfg = TetrisGame.CONFIG;
         this.isRunning = true;
         this.isPaused = false;
         this.score = 0;
         this.level = 1;
         this.lines = 0;
-        this.dropInterval = 1000;
+        this.dropInterval = cfg.INITIAL_DROP_INTERVAL;
         this.createBoard();
         this.spawnPiece();
         this.updateUI();
         
-        document.getElementById('startBtn').textContent = '游戏中';
-        document.getElementById('startBtn').disabled = true;
+        // 使用透明度变化代替文字变化，避免布局闪烁
+        const startBtn = document.getElementById('startBtn');
+        startBtn.style.opacity = '0.6';
+        startBtn.style.cursor = 'not-allowed';
+        startBtn.disabled = true;
+        
+        // 更新移动端按钮状态
+        const mobileStartBtn = document.getElementById('mobileStartBtn');
+        if (mobileStartBtn) {
+            mobileStartBtn.textContent = '暂停';
+            mobileStartBtn.classList.remove('paused');
+        }
+        
         document.getElementById('gameOverModal').classList.add('hidden');
         
         this.lastTime = performance.now();
@@ -580,12 +935,23 @@ class TetrisGame {
         
         this.isPaused = !this.isPaused;
         
+        // 更新移动端按钮状态
+        const mobileStartBtn = document.getElementById('mobileStartBtn');
+        
         if (this.isPaused) {
-            document.getElementById('pauseModal').classList.remove('hidden');
+            // 绘制暂停画面（显示当前游戏状态）
+            this.drawPauseScreen();
             document.getElementById('pauseBtn').textContent = '继续';
+            if (mobileStartBtn) {
+                mobileStartBtn.textContent = '继续';
+                mobileStartBtn.classList.add('paused');
+            }
         } else {
-            document.getElementById('pauseModal').classList.add('hidden');
             document.getElementById('pauseBtn').textContent = '暂停';
+            if (mobileStartBtn) {
+                mobileStartBtn.textContent = '暂停';
+                mobileStartBtn.classList.remove('paused');
+            }
             this.lastTime = performance.now();
             this.gameLoop = requestAnimationFrame((time) => this.update(time));
         }
@@ -598,13 +964,61 @@ class TetrisGame {
         this.isRunning = false;
         cancelAnimationFrame(this.gameLoop);
         
+        // 播放游戏结束音效
+        this.audio.playGameOver();
+        
+        // 更新最高分
+        let isNewRecord = false;
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.saveHighScore(this.highScore);
+            isNewRecord = true;
+        }
+        
         // 显示最终统计
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('finalLines').textContent = this.lines;
         document.getElementById('finalLevel').textContent = this.level;
-        document.getElementById('gameOverModal').classList.remove('hidden');
-        document.getElementById('startBtn').textContent = '开始游戏';
-        document.getElementById('startBtn').disabled = false;
+        
+        // 添加新纪录标识
+        const gameOverModal = document.getElementById('gameOverModal');
+        let newRecordHtml = '';
+        if (isNewRecord) {
+            newRecordHtml = '<p class="new-record">🏆 新纪录!</p>';
+        }
+        
+        // 更新游戏结束界面内容
+        gameOverModal.innerHTML = `
+            <h2>游戏结束</h2>
+            <p>最终得分: <span id="finalScore">${this.score}</span></p>
+            <p>消除行数: <span id="finalLines">${this.lines}</span></p>
+            <p>最高等级: <span id="finalLevel">${this.level}</span></p>
+            ${newRecordHtml}
+            <button id="restartBtn">重新开始</button>
+        `;
+        
+        // 重新绑定重新开始按钮事件
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            this.audio.playButtonClick();
+            this.restart();
+        });
+        
+        gameOverModal.classList.remove('hidden');
+        // 恢复开始按钮状态
+        const startBtn = document.getElementById('startBtn');
+        startBtn.style.opacity = '1';
+        startBtn.style.cursor = 'pointer';
+        startBtn.disabled = false;
+        
+        // 重置移动端按钮状态
+        const mobileStartBtn = document.getElementById('mobileStartBtn');
+        if (mobileStartBtn) {
+            mobileStartBtn.textContent = '开始';
+            mobileStartBtn.classList.remove('paused');
+        }
+        
+        // 更新最高分显示
+        this.updateUI();
     }
     
     /**
@@ -633,6 +1047,12 @@ class TetrisGame {
         if (mobileScore) mobileScore.textContent = this.score;
         if (mobileLevel) mobileLevel.textContent = this.level;
         if (mobileLines) mobileLines.textContent = this.lines > 99 ? '99+' : this.lines;
+        
+        // 更新最高分显示（如果页面有最高分元素）
+        const highScoreElements = document.querySelectorAll('.high-score');
+        highScoreElements.forEach(el => {
+            el.textContent = this.highScore;
+        });
     }
     
     /**
@@ -666,15 +1086,17 @@ class TetrisGame {
     
     /**
      * 绘制游戏画面
-     * 绘制顺序：背景 -> 网格 -> 已固定方块 -> 当前方块 -> 阴影
+     * 绘制顺序：背景 -> 网格(离屏渲染) -> 已固定方块 -> 当前方块 -> 阴影
      */
     draw() {
+        const cfg = TetrisGame.CONFIG;
+        
         // 清空画布
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, cfg.CANVAS_WIDTH, cfg.CANVAS_HEIGHT);
         
-        // 绘制网格线
-        this.drawGrid();
+        // 绘制预渲染的网格（离屏渲染优化）
+        this.ctx.drawImage(this.offscreenCanvas, 0, 0);
         
         // 绘制已固定的方块
         for (let y = 0; y < this.rows; y++) {
@@ -710,79 +1132,111 @@ class TetrisGame {
     }
     
     /**
+     * 绘制暂停画面
+     * 在保持当前游戏画面的基础上添加半透明遮罩和暂停文字
+     */
+    drawPauseScreen() {
+        // 绘制当前游戏画面
+        this.draw();
+        
+        // 添加半透明遮罩
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 计算居中坐标
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        // 绘制暂停文字
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.font = 'bold 40px Microsoft YaHei, Arial, sans-serif';
+        
+        // 文字描边效果（比shadowBlur更清晰）
+        this.ctx.strokeStyle = 'rgba(0, 217, 255, 0.8)';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeText('已暂停', centerX, centerY);
+        
+        // 主文字
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText('已暂停', centerX, centerY);
+        
+        // 绘制提示文字
+        this.ctx.font = '16px Microsoft YaHei, Arial, sans-serif';
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        this.ctx.fillText('点击继续游戏按钮恢复', centerX, centerY + 50);
+    }
+    
+    /**
      * 绘制网格线
+     * @deprecated 已使用离屏渲染优化，此方法保留用于兼容性
      */
     drawGrid() {
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        this.ctx.lineWidth = 1;
-        
-        // 垂直线
-        for (let x = 0; x <= this.cols; x++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x * this.blockSize, 0);
-            this.ctx.lineTo(x * this.blockSize, this.canvas.height);
-            this.ctx.stroke();
-        }
-        
-        // 水平线
-        for (let y = 0; y <= this.rows; y++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, y * this.blockSize);
-            this.ctx.lineTo(this.canvas.width, y * this.blockSize);
-            this.ctx.stroke();
-        }
+        // 网格已预渲染到离屏Canvas，直接绘制离屏Canvas即可
+        this.ctx.drawImage(this.offscreenCanvas, 0, 0);
     }
     
     /**
      * 绘制单个方块
      * 包含主体、高光、阴影三层效果
+     * 使用整数坐标避免子像素模糊
      * @param {number} x - 游戏板 X 坐标（列）
      * @param {number} y - 游戏板 Y 坐标（行）
      * @param {string} color - 方块颜色
      */
     drawBlock(x, y, color) {
-        const px = x * this.blockSize;      // 像素 X 坐标
-        const py = y * this.blockSize;      // 像素 Y 坐标
-        const size = this.blockSize - 2;    // 方块大小（留出间隙）
+        // 使用整数坐标避免子像素模糊
+        const px = Math.floor(x * this.blockSize);
+        const py = Math.floor(y * this.blockSize);
+        const size = this.blockSize - 2;
+        const innerSize = Math.floor(size);
         
         // 1. 主体
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(px + 1, py + 1, size, size);
+        this.ctx.fillRect(px + 1, py + 1, innerSize, innerSize);
         
-        // 2. 高光（左上角）
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.fillRect(px + 1, py + 1, size, 4);      // 顶部高光
-        this.ctx.fillRect(px + 1, py + 1, 4, size);      // 左侧高光
+        // 2. 高光（左上角）- 使用整数坐标
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        const highlightSize = Math.max(2, Math.floor(innerSize * 0.15));
+        this.ctx.fillRect(px + 1, py + 1, innerSize, highlightSize);
+        this.ctx.fillRect(px + 1, py + 1, highlightSize, innerSize);
         
-        // 3. 阴影（右下角）
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.fillRect(px + 1, py + size - 3, size, 4);   // 底部阴影
-        this.ctx.fillRect(px + size - 3, py + 1, 4, size);   // 右侧阴影
+        // 3. 阴影（右下角）- 使用整数坐标
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        const shadowSize = Math.max(2, Math.floor(innerSize * 0.15));
+        this.ctx.fillRect(px + 1, py + innerSize - shadowSize + 1, innerSize, shadowSize);
+        this.ctx.fillRect(px + innerSize - shadowSize + 1, py + 1, shadowSize, innerSize);
+        
+        // 4. 内部边框增强清晰度
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(px + 1.5, py + 1.5, innerSize - 1, innerSize - 1);
     }
     
     /**
      * 绘制正在消除的方块（带动画效果）
      * 动画效果：缩放 + 渐隐 + 发光 + 闪光
+     * 使用整数坐标避免子像素模糊
      * @param {number} x - 游戏板 X 坐标
      * @param {number} y - 游戏板 Y 坐标
      * @param {string} color - 方块颜色
      */
     drawClearingBlock(x, y, color) {
-        const px = x * this.blockSize;
-        const py = y * this.blockSize;
+        const px = Math.floor(x * this.blockSize);
+        const py = Math.floor(y * this.blockSize);
         const size = this.blockSize - 2;
-        const progress = this.clearAnimationProgress;  // 0.0 - 1.0
+        const progress = this.clearAnimationProgress;
         
         // 计算动画参数
-        const scale = 1 - progress * 0.3;        // 从 100% 缩小到 70%
-        const alpha = 1 - progress;              // 从 100% 透明到 0%
-        const offset = (1 - scale) * size / 2;   // 居中偏移量
-        const scaledSize = size * scale;
+        const scale = 1 - progress * 0.3;
+        const alpha = 1 - progress;
+        const scaledSize = Math.floor(size * scale);
+        const offset = Math.floor((size - scaledSize) / 2);
         
         // 发光效果（中间最亮）
         const glowIntensity = Math.sin(progress * Math.PI);
         this.ctx.shadowColor = color;
-        this.ctx.shadowBlur = 20 * glowIntensity;
+        this.ctx.shadowBlur = Math.floor(20 * glowIntensity);
         
         // 绘制主体（带透明度）
         this.ctx.globalAlpha = alpha;
@@ -795,7 +1249,7 @@ class TetrisGame {
         
         // 闪光效果（前半段）
         if (progress < 0.5) {
-            const flashAlpha = (0.5 - progress) * 2;  // 从 1 降到 0
+            const flashAlpha = (0.5 - progress) * 2;
             this.ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha * 0.5})`;
             this.ctx.fillRect(px + 1 + offset, py + 1 + offset, scaledSize, scaledSize);
         }
@@ -804,12 +1258,15 @@ class TetrisGame {
     /**
      * 绘制阴影（预览落点）
      * 显示方块最终落点位置，随等级提升逐渐消失
+     * 使用整数坐标避免子像素模糊
      */
     drawShadow() {
         if (!this.currentPiece) return;
         
-        // 3级及以上不显示阴影（增加难度）
-        if (this.level >= 3) return;
+        const cfg = TetrisGame.CONFIG;
+        
+        // 超过配置等级不显示阴影（增加难度）
+        if (this.level > cfg.SHADOW_MAX_LEVEL) return;
         
         // 计算落点 Y 坐标
         let shadowY = this.currentPiece.y;
@@ -820,21 +1277,34 @@ class TetrisGame {
         // 如果已经在底部则不绘制
         if (shadowY === this.currentPiece.y) return;
         
-        // 根据等级计算透明度：1级30%，2级15%
-        const shadowAlpha = this.level === 1 ? 0.3 : 0.15;
+        // 根据等级计算透明度
+        const shadowAlpha = this.level === 1 ? cfg.SHADOW_ALPHA_LEVEL1 : cfg.SHADOW_ALPHA_LEVEL2;
         
-        // 绘制阴影方块
+        // 绘制阴影方块 - 使用虚线边框代替填充，更清晰
         this.ctx.globalAlpha = shadowAlpha;
+        const blockInnerSize = this.blockSize - 2;
+        
         for (let y = 0; y < this.currentPiece.shape.length; y++) {
             for (let x = 0; x < this.currentPiece.shape[y].length; x++) {
                 if (this.currentPiece.shape[y][x]) {
-                    const px = (this.currentPiece.x + x) * this.blockSize;
-                    const py = (shadowY + y) * this.blockSize;
+                    const px = Math.floor((this.currentPiece.x + x) * this.blockSize);
+                    const py = Math.floor((shadowY + y) * this.blockSize);
+                    
+                    // 绘制虚线边框阴影
+                    this.ctx.strokeStyle = this.currentPiece.color;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([4, 2]);
+                    this.ctx.strokeRect(px + 2, py + 2, blockInnerSize - 2, blockInnerSize - 2);
+                    
+                    // 填充半透明内部
                     this.ctx.fillStyle = this.currentPiece.color;
-                    this.ctx.fillRect(px + 1, py + 1, this.blockSize - 2, this.blockSize - 2);
+                    this.ctx.fillRect(px + 4, py + 4, blockInnerSize - 6, blockInnerSize - 6);
                 }
             }
         }
+        
+        // 重置绘制状态
+        this.ctx.setLineDash([]);
         this.ctx.globalAlpha = 1;
     }
     
@@ -864,9 +1334,10 @@ class TetrisGame {
      * @param {number} blockSize - 方块大小（像素）
      */
     drawNextOnCanvas(ctx, canvas, blockSize) {
-        // 计算居中偏移量
-        const offsetX = (canvas.width - this.nextPiece.shape[0].length * blockSize) / 2;
-        const offsetY = (canvas.height - this.nextPiece.shape.length * blockSize) / 2;
+        // 计算居中偏移量 - 使用整数坐标
+        const offsetX = Math.floor((canvas.width - this.nextPiece.shape[0].length * blockSize) / 2);
+        const offsetY = Math.floor((canvas.height - this.nextPiece.shape.length * blockSize) / 2);
+        const innerSize = Math.floor(blockSize - 2);
         
         // 清空画布
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -879,17 +1350,23 @@ class TetrisGame {
         for (let y = 0; y < this.nextPiece.shape.length; y++) {
             for (let x = 0; x < this.nextPiece.shape[y].length; x++) {
                 if (this.nextPiece.shape[y][x]) {
-                    const px = offsetX + x * blockSize;
-                    const py = offsetY + y * blockSize;
+                    const px = Math.floor(offsetX + x * blockSize);
+                    const py = Math.floor(offsetY + y * blockSize);
                     
                     // 主体
                     ctx.fillStyle = this.nextPiece.color;
-                    ctx.fillRect(px + 1, py + 1, blockSize - 2, blockSize - 2);
+                    ctx.fillRect(px + 1, py + 1, innerSize, innerSize);
                     
                     // 高光
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-                    ctx.fillRect(px + 1, py + 1, blockSize - 2, 2);
-                    ctx.fillRect(px + 1, py + 1, 2, blockSize - 2);
+                    const highlightSize = Math.max(1, Math.floor(innerSize * 0.1));
+                    ctx.fillRect(px + 1, py + 1, innerSize, highlightSize);
+                    ctx.fillRect(px + 1, py + 1, highlightSize, innerSize);
+                    
+                    // 内部边框
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(px + 1.5, py + 1.5, innerSize - 1, innerSize - 1);
                 }
             }
         }

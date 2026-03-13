@@ -1,14 +1,37 @@
 /**
- * 俄罗斯方块 - 样式表
- * 包含游戏界面、按钮、画布等元素的样式定义
+ * @fileoverview 俄罗斯方块 - 样式表
  * 
- * 项目结构:
- * - 全局重置: 清除默认样式，统一盒模型
- * - 页面主体: 背景渐变、 flex 居中布局
- * - 侧边面板: 桌面端左右信息栏（下一个、得分、等级、已消除）
- * - 中间游戏区域: 标题、画布、控制按钮
- * - 移动端适配: 信息栏、圆形控制盘、横屏检测
- * - 响应式设计: 适配不同屏幕尺寸
+ * @description
+ * 包含游戏界面、按钮、画布等元素的完整样式定义。
+ * 采用移动优先的响应式设计，支持桌面端和移动端适配。
+ * 
+ * @styleArchitecture
+ * 1. 全局重置 - 清除默认样式，统一盒模型
+ * 2. 页面主体 - 深蓝灰渐变背景、flex 居中布局
+ * 3. 侧边面板 - 桌面端左右信息栏
+ * 4. 游戏区域 - 流光标题、自适应画布、控制按钮
+ * 5. 移动端适配 - 顶部信息栏、横向方向按钮
+ * 6. 响应式设计 - 多断点适配
+ * 
+ * @mobileFeatures
+ * - 画布自适应: 保持1:2比例，最大340px宽
+ * - 触摸优化: 无延迟响应，长按连击
+ * - 按钮设计: 圆形52-56px，渐变+阴影立体感
+ * - 横屏检测: 自动暂停并提示
+ * 
+ * @responsiveBreakpoints
+ * - > 900px: 桌面端三栏布局
+ * - ≤ 900px: 移动端单栏布局
+ * - ≤ 480px: 小屏幕紧凑布局
+ * - 横屏: 特殊横屏提示
+ * 
+ * @pixelRendering
+ * - image-rendering: pixelated - 保持像素清晰
+ * - 禁用图像平滑 - 防止Canvas模糊
+ * 
+ * @version 1.4.0
+ * @since 2026-03-11
+ * @license MIT
  */
 
 /* ===== 全局重置 ===== */
@@ -90,11 +113,16 @@ body {
 }
 
 /* 得分、等级、已消除数字样式 */
-.score, .level, .lines {
+.score, .level, .lines, .high-score {
     font-size: 1.5em;
     font-weight: bold;
     color: #00d9ff;
     text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+.high-score {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 /* ===== 中间游戏区域 ===== */
@@ -129,6 +157,8 @@ h1 {
 .canvas-container {
     position: relative;
     display: inline-block;
+    width: 250px;   /* 固定宽度，与画布一致 */
+    height: 500px;  /* 固定高度，与画布一致 */
 }
 
 /* 游戏主画布 */
@@ -137,13 +167,17 @@ h1 {
     border-radius: 10px;
     border: 2px solid rgba(100, 150, 180, 0.4);
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
-    max-height: 65vh; /* 限制高度防止溢出 */
-    width: auto;
-    height: auto;
+    max-height: 75vh;
+    width: 250px;   /* 固定宽度，避免闪烁 */
+    height: 500px;  /* 固定高度，避免闪烁 */
+    /* 像素渲染优化：防止缩放时模糊 */
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
 }
 
 /* ===== 游戏结束/暂停弹窗 ===== */
-.game-over-modal, .pause-modal {
+.game-over-modal {
     position: absolute;
     top: 0;
     left: 0;
@@ -158,7 +192,7 @@ h1 {
     z-index: 10;
 }
 
-.game-over-modal h2, .pause-modal h2 {
+.game-over-modal h2 {
     color: #ff6b6b;
     font-size: 2.5em;
     margin-bottom: 20px;
@@ -168,7 +202,38 @@ h1 {
 .game-over-modal p {
     color: #fff;
     font-size: 1.5em;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
+}
+
+.game-over-modal .new-record {
+    color: #ffd700;
+    font-size: 1.8em;
+    font-weight: bold;
+    margin: 15px 0;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+#restartBtn {
+    padding: 15px 40px;
+    font-size: 1.2em;
+    background: linear-gradient(145deg, #00d9ff, #0099cc);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+#restartBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 217, 255, 0.6);
 }
 
 /* ===== 移动端信息栏 ===== */
@@ -176,8 +241,11 @@ h1 {
     display: none;
     justify-content: center;
     align-items: flex-end;
-    gap: 15px;
-    padding: 8px 0;
+    width: 100%;
+    max-width: 320px;
+    gap: 24px;
+    padding: 10px 0;
+    margin: 0 auto;
 }
 
 .mobile-info-item {
@@ -198,117 +266,155 @@ h1 {
     font-weight: bold;
     color: #00d9ff;
     text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 #mobileNextCanvas {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
 }
 
-/* ===== 移动端控制按钮 - 圆形方向盘 ===== */
+/* 移动端开始/暂停按钮 */
+.mobile-control-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(145deg, #00d9ff, #0099cc);
+    color: #fff;
+    font-size: 0.75em;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 217, 255, 0.4);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.mobile-control-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 6px rgba(0, 217, 255, 0.3);
+}
+
+.mobile-control-btn.paused {
+    background: linear-gradient(145deg, #ff6b6b, #cc5555);
+    box-shadow: 0 4px 10px rgba(255, 107, 107, 0.4);
+}
+
+/* ===== 移动端控制按钮 - 方向按钮 ===== */
 .mobile-controls {
     display: none;
-    margin-bottom: 10px;
+    margin-top: 10px;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
-.d-pad {
-    position: relative;
-    width: 130px;
-    height: 130px;
-    margin: 0 auto;
+.mobile-btn-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
-/* 外围透明阴影圆环背景 */
-.d-pad-bg {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    background: radial-gradient(circle, 
-        rgba(255, 255, 255, 0.1) 0%, 
-        rgba(255, 255, 255, 0.15) 40%, 
-        rgba(255, 255, 255, 0.2) 70%,
-        rgba(100, 150, 180, 0.15) 100%);
-    box-shadow: 
-        0 0 30px rgba(0, 0, 0, 0.2),
-        inset 0 0 40px rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+.mobile-control-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
 }
 
-.d-btn {
-    position: absolute;
-    width: 42px;
-    height: 42px;
+.mobile-dir-btn {
+    width: 52px;
+    height: 52px;
     border: none;
     border-radius: 50%;
-    background: linear-gradient(145deg, rgba(60, 80, 100, 0.9), rgba(40, 60, 80, 0.9));
-    color: #a0c0d0;
-    font-size: 1.2em;
+    background: linear-gradient(145deg, rgba(100, 120, 140, 0.9), rgba(70, 90, 110, 0.9));
+    color: #d0e0f0;
+    font-size: 1.3em;
     cursor: pointer;
     box-shadow: 
-        0 4px 10px rgba(0, 0, 0, 0.3),
-        inset 0 1px 3px rgba(255, 255, 255, 0.1);
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.15),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.15s ease;
     touch-action: manipulation;
     display: flex;
     align-items: center;
     justify-content: center;
     backdrop-filter: blur(5px);
-    border: 1px solid rgba(100, 150, 180, 0.3);
 }
 
-.d-btn:active {
-    transform: scale(0.9);
+.mobile-dir-btn:active {
+    transform: scale(0.92);
     box-shadow: 
-        0 2px 6px rgba(0, 0, 0, 0.3),
-        inset 0 2px 5px rgba(0, 0, 0, 0.2);
-    background: linear-gradient(145deg, rgba(80, 120, 150, 0.9), rgba(60, 90, 120, 0.9));
+        0 2px 8px rgba(0, 0, 0, 0.4),
+        inset 0 3px 6px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, rgba(120, 150, 180, 0.9), rgba(90, 120, 150, 0.9));
     color: #fff;
 }
 
-/* 上 - 旋转 */
-.d-up {
-    top: 3px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(145deg, #5dade2, #3498db);
+/* 旋转按钮使用蓝色高亮 */
+#rotateBtn {
+    background: linear-gradient(145deg, #4a9eff, #2d7dd8);
     color: #fff;
     box-shadow: 
-        0 4px 10px rgba(52, 152, 219, 0.4),
-        inset 0 1px 3px rgba(255, 255, 255, 0.2);
+        0 4px 15px rgba(45, 125, 216, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
 }
 
-.d-up:active {
-    background: linear-gradient(145deg, #3498db, #5dade2);
+#rotateBtn:active {
+    background: linear-gradient(145deg, #2d7dd8, #4a9eff);
 }
 
-/* 左 */
-.d-left {
-    top: 50%;
-    left: 3px;
-    transform: translateY(-50%);
+/* 直接掉落按钮使用橙色高亮 */
+.mobile-drop-btn {
+    background: linear-gradient(145deg, #ffb347, #ff8c42);
+    color: #fff;
+    box-shadow: 
+        0 4px 15px rgba(255, 140, 66, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
 }
 
-/* 右 */
-.d-right {
-    top: 50%;
-    right: 3px;
-    transform: translateY(-50%);
+.mobile-drop-btn:active {
+    background: linear-gradient(145deg, #ff8c42, #ffb347);
 }
 
-/* 下 - 加速下落 */
-.d-down {
-    bottom: 3px;
-    left: 50%;
-    transform: translateX(-50%);
+/* 移动端开始/暂停按钮 - 宽版 */
+.mobile-control-btn-wide {
+    width: 85%;
+    height: 36px;
+    border-radius: 18px;
+    border: none;
+    background: linear-gradient(145deg, #00c6ff, #0072ff);
+    color: #fff;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.mobile-control-btn-wide:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 114, 255, 0.3);
+}
+
+.mobile-control-btn-wide.paused {
+    background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
 }
 
 /* ===== 游戏控制按钮 ===== */
@@ -316,7 +422,7 @@ h1 {
     margin-bottom: 10px;
 }
 
-.btn-primary, .btn-secondary {
+.btn-primary, .btn-secondary, .btn-mute {
     padding: 10px 25px;
     margin: 0 8px;
     font-size: 0.9em;
@@ -326,6 +432,18 @@ h1 {
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+.btn-mute {
+    padding: 10px 15px;
+    background: linear-gradient(145deg, #9ca3af, #6b7280);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(107, 114, 128, 0.4);
+}
+
+.btn-mute.muted {
+    background: linear-gradient(145deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
 }
 
 .btn-primary {
@@ -348,35 +466,6 @@ h1 {
 .btn-secondary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
-}
-
-#restartBtn {
-    padding: 15px 40px;
-    font-size: 1.2em;
-    background: linear-gradient(145deg, #00d9ff, #0099cc);
-    color: #fff;
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
-    transition: all 0.3s ease;
-}
-
-#restartBtn:hover, #resumeBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 217, 255, 0.6);
-}
-
-#resumeBtn {
-    padding: 15px 40px;
-    font-size: 1.2em;
-    background: linear-gradient(145deg, #00d9ff, #0099cc);
-    color: #fff;
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
-    transition: all 0.3s ease;
 }
 
 /* ===== 操作说明 ===== */
@@ -427,8 +516,8 @@ h1 {
     .game-wrapper {
         flex-direction: column;
         align-items: center;
-        padding: 10px;
-        gap: 10px;
+        padding: 5px;
+        gap: 8px;
     }
     
     .side-panel {
@@ -440,16 +529,40 @@ h1 {
         margin-bottom: 10px;
     }
     
-    #gameCanvas {
-        max-width: 95vw;
-        max-height: 48vh;
+    .canvas-container {
         width: auto;
         height: auto;
+        max-width: min(92vw, 340px);
+        max-height: 60vh;
+        /* 保持 250x500 = 1:2 的固定比例 */
+        aspect-ratio: 250/500;
+    }
+    
+    #gameCanvas {
+        width: 100%;
+        height: 100%;
+        /* 移动端保持像素比例，防止拉伸模糊 */
+        object-fit: contain;
     }
     
     .mobile-controls {
-        display: block;
+        display: flex;
+        justify-content: center;
         margin-top: 8px;
+    }
+    
+    .mobile-btn-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+    }
+    
+    .mobile-dir-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 1.2em;
     }
     
     .mobile-info-bar {
@@ -461,6 +574,7 @@ h1 {
     }
     
     .game-controls {
+        display: none;
         margin-bottom: 8px;
     }
     
@@ -475,52 +589,30 @@ h1 {
         font-size: 1.7em;
     }
     
-    .d-pad {
-        width: 110px;
-        height: 110px;
-    }
-    
-    .d-pad-bg {
-        width: 110px;
-        height: 110px;
-    }
-    
-    .d-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 1em;
-    }
-    
-    .d-up {
-        top: 2px;
-    }
-    
-    .d-left {
-        left: 2px;
-    }
-    
-    .d-right {
-        right: 2px;
-    }
-    
-    .d-down {
-        bottom: 2px;
-    }
-    
     .mobile-info-bar {
         gap: 20px;
-        padding: 6px 0;
+        padding: 8px 0;
     }
     
     .mobile-info-value {
-        font-size: 0.85em;
-        width: 30px;
-        height: 30px;
+        font-size: 0.9em;
+        width: 36px;
+        height: 36px;
     }
     
     #mobileNextCanvas {
-        width: 30px;
-        height: 30px;
+        width: 36px;
+        height: 36px;
+    }
+    
+    .mobile-dir-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.1em;
+    }
+    
+    .mobile-btn-row {
+        gap: 20px;
     }
 }
 
@@ -545,10 +637,6 @@ h1 {
         flex-wrap: wrap;
         justify-content: center;
         gap: 5px;
-    }
-    
-    .control-row {
-        margin-bottom: 5px;
     }
 }
 
